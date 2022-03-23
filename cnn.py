@@ -133,38 +133,38 @@ class CNN(nn.Module):
 
 
         # unstructure
-        if args.use_unstructure:
-            self.vocab_embedding = nn.Embedding (args.unstructure_size+10, args.embed_size )
+        # if args.use_unstructure:
+        #     self.vocab_embedding = nn.Embedding (args.unstructure_size+10, args.embed_size )
             # self.vocab_layer = self.make_layer(block, embed_size, layers[0], 2)
-            self.vocab_layer = nn.Sequential(
-                    nn.Dropout(0.2),
-                    conv3(embed_size, embed_size, 2, 2),
-                    nn.BatchNorm1d(embed_size),
-                    nn.Dropout(0.2),
-                    nn.ReLU(),
-                    # conv3(embed_size, embed_size, 2, 3),
-                    # nn.BatchNorm1d(embed_size),
-                    # nn.Dropout(0.1),
-                    # nn.ReLU(),
-                    # conv3(embed_size, embed_size, 2, 3),
-                    # nn.BatchNorm1d(embed_size),
-                    # nn.Dropout(0.1),
-                    # nn.ReLU(),
-                    )
-            self.vocab_output = nn.Sequential (
-                nn.ReLU ( ),
-                nn.Dropout ( 0.1),
-                nn.Linear (args.embed_size * 3, 3 * args.embed_size),
-                nn.ReLU ( ),
-                nn.Dropout ( 0.1),
-                nn.Linear ( 3 * args.embed_size, output_size),
-            )
-            self.one_output = nn.Sequential (
-                # nn.Linear (args.embed_size * 3, args.embed_size),
-                # nn.ReLU ( ),
-                nn.Dropout ( 0.1),
-                nn.Linear ( args.embed_size, output_size),
-            )
+        self.vocab_layer = nn.Sequential(
+                nn.Dropout(0.2),
+                conv3(embed_size, embed_size, 2, 2),
+                nn.BatchNorm1d(embed_size),
+                nn.Dropout(0.2),
+                nn.ReLU(),
+                # conv3(embed_size, embed_size, 2, 3),
+                # nn.BatchNorm1d(embed_size),
+                # nn.Dropout(0.1),
+                # nn.ReLU(),
+                # conv3(embed_size, embed_size, 2, 3),
+                # nn.BatchNorm1d(embed_size),
+                # nn.Dropout(0.1),
+                # nn.ReLU(),
+                )
+        self.vocab_output = nn.Sequential (
+            nn.ReLU ( ),
+            nn.Dropout ( 0.1),
+            nn.Linear (args.embed_size * 3, 3 * args.embed_size),
+            nn.ReLU ( ),
+            nn.Dropout ( 0.1),
+            nn.Linear ( 3 * args.embed_size, output_size),
+        )
+        self.one_output = nn.Sequential (
+            # nn.Linear (args.embed_size * 3, args.embed_size),
+            # nn.ReLU ( ),
+            nn.Dropout ( 0.1),
+            nn.Linear ( args.embed_size, output_size),
+        )
 
 
     def visit_pooling(self, x):
@@ -206,12 +206,12 @@ class CNN(nn.Module):
 
     def forward(self, x, t, dd, content=None):
 
-        if content is not None:
-            # content = self.vocab_embedding(content).transpose(1,2)
-            content = self.vocab_layer(content.transpose(1,2))
-            content = self.pooling(content)                                       # (64*30, 200, 1)
-            content = content.view((content.size(0), -1))
-            return self.one_output(content)
+        # if content is not None:
+        #     # content = self.vocab_embedding(content).transpose(1,2)
+        #     content = self.vocab_layer(content.transpose(1,2))
+        #     content = self.pooling(content)                                       # (64*30, 200, 1)
+        #     content = content.view((content.size(0), -1))
+        #     return self.one_output(content)
 
         # value embedding
         x = self.value_order_embedding(x)

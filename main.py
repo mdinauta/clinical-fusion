@@ -37,7 +37,7 @@ else:
 
 args.use_ve = 1
 args.n_visit = 24
-args.use_unstructure = 1
+args.use_unstructure = 0
 args.value_embedding = 'use_order'
 # args.value_embedding = 'no'
 print ('epochs,', args.epochs)
@@ -102,10 +102,10 @@ def train_eval(data_loader, net, loss, epoch, optimizer, best_metric, phase='tra
             data = index_value(data)
 
 
-        dtime = Variable(_cuda(dtime)) 
-        demo = Variable(_cuda(demo)) 
-        content = Variable(_cuda(content)) 
-        label = Variable(_cuda(label)) 
+        dtime = Variable(_cuda(dtime))
+        demo = Variable(_cuda(demo))
+        content = Variable(_cuda(content))
+        label = Variable(_cuda(label))
         output = net(data, dtime, demo, content) # [bs, 1]
         # output = net(data, dtime, demo) # [bs, 1]
 
@@ -174,9 +174,13 @@ def main():
     if args.use_unstructure:
         args.unstructure_size = len(py_op.myreadjson(os.path.join(args.files_dir, 'vocab_list.json'))) + 10
 
-    # net = icnn.CNN(args)
-    # net = cnn.CNN(args)
-    net = lstm.LSTM(args)
+    if args.model == 'cnn':
+        print('Training CNN...')
+        net = cnn.CNN(args)
+        net = cnn.CNN(args)
+    else:
+        print('Training LSTM...')
+        net = lstm.LSTM(args)
     # net = torch.nn.DataParallel(net)
     # loss = myloss.Loss(0)
     loss = myloss.MultiClassLoss(0)
