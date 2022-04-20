@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn import metrics
@@ -13,6 +13,7 @@ import json
 import os
 import time
 import warnings
+import pickle
 
 from utils import cal_metric, get_ids, text2words
 
@@ -36,6 +37,19 @@ def train_test_base(X_train, X_test, y_train, y_test, name):
         param_grid = {
             'penalty': ['l1', 'l2']
         }
+
+    elif name == 'gbm':
+        model = GradientBoostingClassifier()
+        param_grid = {
+            "learning_rate": [0.05, 0.075, 0.1, 0.15],
+            "min_samples_split": np.linspace(0.1, 0.5, 5),
+            "min_samples_leaf": np.linspace(0.1, 0.5, 5),
+            "max_depth": [3, 5, 8],
+            "max_features": ["log2", "sqrt"],
+            "subsample": 0.8,
+            "n_estimators": [8, 16, 32]
+            }
+
     else:
         print('Start training Random Forest:')
         model = RandomForestClassifier()
@@ -48,9 +62,13 @@ def train_test_base(X_train, X_test, y_train, y_test, name):
     else:
         y_train, y_test = y_train[:, 0], y_test[:, 0]
     t0 = time.time()
-    gridsearch = GridSearchCV(model, param_grid, scoring='roc_auc', cv=5)
+    gridsearch = GridSearchCV(model, param_grid, scoring='roc_auc', cv=3)
     gridsearch.fit(X_train, y_train)
     model = gridsearch.best_estimator_
+
+    with open('baseline_model.pkl', 'wb') as f:
+        pickle.dump(model, f)
+
     t1 = time.time()
     print('Running time:', t1 - t0)
     probs = model.predict_proba(X_test)
@@ -64,7 +82,6 @@ def train_test_base(X_train, X_test, y_train, y_test, name):
     else:
         metric = cal_metric(y_test, probs[:, 1])
         print(metric)
-    
 
 if __name__ == '__main__':
     args = parse_args()
