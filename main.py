@@ -177,7 +177,7 @@ def main():
     if args.model == 'cnn':
         print('Training CNN...')
         net = cnn.CNN(args)
-        net = cnn.CNN(args)
+        torch.save(net, 'cnn.pt')
     else:
         print('Training LSTM...')
         net = lstm.LSTM(args)
@@ -207,9 +207,12 @@ def main():
         for epoch in range(start_epoch, args.epochs):
             print('start epoch :', epoch)
             t0 = time.time()
+            t0_process = time.process_time()
             train_eval(train_loader, net, loss, epoch, optimizer, best_metric)
             t1 = time.time()
-            print('Running time:', t1 - t0)
+            t1_process = time.process_time()
+            print('Wall time:', t1 - t0)
+            print('CPU time:', t1_process - t0_process)
             best_metric = train_eval(valid_loader, net, loss, epoch, optimizer, best_metric, phase='valid')
         print('best metric', best_metric)
 
