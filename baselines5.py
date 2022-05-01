@@ -38,7 +38,7 @@ def train_test_base(X_train, X_test, y_train, y_test, task, name, inputs, seed):
     elif name == 'gbm':
         print('Start training Gradient Boosting Classifier:')
         model = GradientBoostingClassifier()
-    else:
+    elif name == 'rf':
         print('Start training Random Forest:')
         model = RandomForestClassifier()
     if mtl:
@@ -143,13 +143,20 @@ if __name__ == '__main__':
         train_test_base(X_train, X_test, y_train, y_test, task, 'lr', inputs, seed)
         train_test_base(X_train, X_test, y_train, y_test, task, 'rf', inputs, seed)
     elif model == 'gbm':
-
+        # param_grid = {
+        #     "learning_rate": [0.05, 0.075, 0.1, 0.15],
+        #     "min_samples_split": [0.1, 0.3, 0.5],
+        #     "min_samples_leaf": [0.1, 0.3, 0.5],
+        #     "max_depth": [3, 5, 8],
+        #     "n_estimators": [8, 16, 32]
+        #     }
         param_grid = {
-            "learning_rate": [0.05, 0.075, 0.1, 0.15],
-            "min_samples_split": [0.1, 0.3, 0.5],
-            "min_samples_leaf": [0.1, 0.3, 0.5],
+            "learning_rate": [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2],
+            "min_samples_split": np.linspace(0.1, 0.5, 5),
+            "min_samples_leaf": np.linspace(0.1, 0.5, 5),
             "max_depth": [3, 5, 8],
-            "n_estimators": [8, 16, 32]
+            "subsample": [0.5, 0.85, 1.0],
+            "n_estimators": [10, 20]
             }
 
         t0 = time.time()
@@ -161,16 +168,31 @@ if __name__ == '__main__':
             verbose=1,
             n_jobs=-1)
         gridsearch.fit(X_train, y_train)
-
-        print('Grid search results:')
-        print(gridsearch.cv_results_)
-
         model = gridsearch.best_estimator_
 
-        dump(model, 'best_gbm.joblib')
-        dump(gridsearch.cv_results_, 'gridsearch_results.joblib')
-
+        dump(gridsearch, 'gbm_gridsearch.joblib')
+        dump(gridsearch, 'gbm_model.joblib')
         t1 = time.time()
         print('Running time:', t1 - t0)
+    elif model == 'rf':
+
+        param_grid = {
+            'n_estimators': [x for x in range(100, 1100, 200)],
+            'max_depth': [10, 20, 80]
+        }
+
+        gridsearch = GridSearchCV(
+            estimator=RandomForestClassifier(),
+            param_grid=param_grid,
+            scoring='roc_auc',
+            cv=3,
+            verbose=1,
+            n_jobs=-1)
+        gridsearch.fit(X_train, y_train)
+
+        model = gridsearch.best_estimator_
+        dump(gridsearch, 'rf_gridsearch.joblib')
+        dump(gridsearch, 'rf_model.joblib')
+
     else:
         train_test_base(X_train, X_test, y_train, y_test, task, model, inputs, seed)

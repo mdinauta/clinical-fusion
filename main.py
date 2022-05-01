@@ -192,10 +192,15 @@ def main():
     start_epoch = 0
 
     if args.resume:
+        print('Resuming...')
         p_dict = {'model': net}
-        function.load_model(p_dict, args.resume)
+        function.load_model(p_dict, 'models/best.ckpt')
         best_metric = p_dict['best_metric']
         start_epoch = p_dict['epoch'] + 1
+
+        num_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+        print('number of parameters: {}'.format(num_params))
+
 
     parameters_all = []
     for p in net.parameters():
