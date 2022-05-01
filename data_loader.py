@@ -40,8 +40,8 @@ class DataBowl(Dataset):
         self.phase = phase
         self.files = files
         self.n_dd = 6
-        self.feature_mm_dict = json.load(open(os.path.join(args.files_dir, 'feature_mm_dict.json'), 'w'))
-        self.feature_value_dict = json.load(open(os.path.join(args.files_dir, 'feature_value_dict_{:d}.json'.format(args.split_num)), 'w'))
+        self.feature_mm_dict = json.load(open(os.path.join(args.files_dir, 'feature_mm_dict.json')))
+        self.feature_value_dict = json.load(open(os.path.join(args.files_dir, 'feature_value_dict_{:d}.json'.format(args.split_num))))
         demo_file = os.path.join(args.files_dir, 'demo_dict.json')
         if os.path.exists(demo_file):
             self.demo_dict = json.load(open(demo_file, 'r'))

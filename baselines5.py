@@ -2,10 +2,12 @@ import pandas as pd
 import numpy as np
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn import metrics
 from gensim.models.doc2vec import Doc2Vec
+from sklearn.model_selection import GridSearchCV
+from joblib import dump, load
 
 import argparse
 import json
@@ -29,29 +31,36 @@ def parse_args():
 
 
 def train_test_base(X_train, X_test, y_train, y_test, task, name, inputs, seed):
-    mtl = 1 if y_test.shape[1] > 1 else 0 # multi-label
+    mtl = 1 if y_test.shape[1] > 1 else 0  # multi-label
     if name == 'lr':
-        # print('Start training Logistic Regression:')
+        print('Start training Logistic Rexgression:')
         model = LogisticRegression()
-    else:
-        # print('Start training Random Forest:')
+    elif name == 'gbm':
+        print('Start training Gradient Boosting Classifier:')
+        model = GradientBoostingClassifier()
+    elif name == 'rf':
+        print('Start training Random Forest:')
         model = RandomForestClassifier()
     if mtl:
         model = OneVsRestClassifier(model)
     else:
         y_train, y_test = y_train[:, 0], y_test[:, 0]
+
     t0 = time.time()
     model.fit(X_train, y_train)
     t1 = time.time()
-    # print('Running time:', t1 - t0)
+    print('Running time:', t1 - t0)
+
     probs = model.predict_proba(X_test)
+
     metrics = []
+
     if mtl:
         for idx in range(y_test.shape[1]):
             metric = cal_metric(y_test[:, idx], probs[:, idx])
             # print(idx + 1, metric)
             metrics.append(metric)
-        # print('Avg', np.mean(metrics, axis=0).tolist())
+        print('Avg', np.mean(metrics, axis=0).tolist())
     else:
         metric = cal_metric(y_test, probs[:, 1])
         f1, auc, aupr = metric
@@ -65,13 +74,14 @@ if __name__ == '__main__':
     model = args.model
     inputs = args.inputs
     seed = args.seed
-    # print('Running task %s using inputs %d...' % (task, inputs))
+    print('Running task %s using inputs %d...' % (task, inputs))
     train_ids, val_ids, test_ids = get_ids2('data/processed/files/splits.json', seed)
 
     df = pd.read_csv('data/processed/%s.csv' % task).sort_values('hadm_id')
 
     if task != 'labels_icd' and task != 'los_bin':
         pass
+
     train_ids = np.intersect1d(train_ids, df['hadm_id'].tolist())
     test_ids = np.intersect1d(test_ids, df['hadm_id'].tolist())
 
@@ -79,7 +89,7 @@ if __name__ == '__main__':
     X_train, X_test = [], []
 
     if choices[0] == '1':
-        # print('Loading notes...')
+        print('Loading notes...')
         df_notes = pd.read_csv('data/processed/earlynotes.csv').sort_values('hadm_id')
         doc2vec = Doc2Vec.load('models/doc2vec.model')
         df_notes['text'] = df_notes['text'].astype(str)
@@ -93,8 +103,9 @@ if __name__ == '__main__':
 
         X_train.append(X_train_notes)
         X_test.append(X_test_notes)
+
     if choices[1] == '1':
-        # print('Loading temporal data...')
+        print('Loading temporal data...')
         df_temporal = pd.read_csv('data/processed/features.csv').drop('charttime', axis=1)
         temporal_mm_dict = json.load(open('data/processed/files/feature_mm_dict.json'))
         for col in df_temporal.columns[1:]:
@@ -102,8 +113,7 @@ if __name__ == '__main__':
             df_temporal[col] = (df_temporal[col] - col_min) / (col_max - col_min)
         df_temporal = df_temporal.groupby(
             'hadm_id').agg(['mean', 'count', 'max', 'min', 'std'])
-        df_temporal.columns = ['_'.join(col).strip()
-                                for col in df_temporal.columns.values]
+        df_temporal.columns = ['_'.join(col).strip() for col in df_temporal.columns.values]
         df_temporal.fillna(0, inplace=True)
         df_temporal = df_temporal.reset_index().sort_values('hadm_id')
         df_temporal_cols = df_temporal.columns[1:]
@@ -111,8 +121,9 @@ if __name__ == '__main__':
         X_test_temporal = df_temporal[df_temporal['hadm_id'].isin(test_ids)][df_temporal_cols].to_numpy()
         X_train.append(X_train_temporal)
         X_test.append(X_test_temporal)
+
     if choices[2] == '1':
-        # print('Loading demographics...')
+        print('Loading demographics...')
         df_demo = pd.read_csv('data/processed/demo.csv').sort_values('hadm_id')
         df_demo = pd.get_dummies(df_demo, drop_first=True)
         df_demo_cols = df_demo.columns[1:]
@@ -121,7 +132,7 @@ if __name__ == '__main__':
         X_train.append(X_train_demo)
         X_test.append(X_test_demo)
 
-    # print('Done.')
+    print('Done.')
     df_cols = df.columns[1:]
     X_train = np.concatenate(X_train, axis=1)
     X_test = np.concatenate(X_test, axis=1)
@@ -131,5 +142,57 @@ if __name__ == '__main__':
     if model == 'all':
         train_test_base(X_train, X_test, y_train, y_test, task, 'lr', inputs, seed)
         train_test_base(X_train, X_test, y_train, y_test, task, 'rf', inputs, seed)
+    elif model == 'gbm':
+        # param_grid = {
+        #     "learning_rate": [0.05, 0.075, 0.1, 0.15],
+        #     "min_samples_split": [0.1, 0.3, 0.5],
+        #     "min_samples_leaf": [0.1, 0.3, 0.5],
+        #     "max_depth": [3, 5, 8],
+        #     "n_estimators": [8, 16, 32]
+        #     }
+        param_grid = {
+            "learning_rate": [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2],
+            "min_samples_split": np.linspace(0.1, 0.5, 5),
+            "min_samples_leaf": np.linspace(0.1, 0.5, 5),
+            "max_depth": [3, 5, 8],
+            "subsample": [0.5, 0.85, 1.0],
+            "n_estimators": [10, 20]
+            }
+
+        t0 = time.time()
+        gridsearch = GridSearchCV(
+            estimator=GradientBoostingClassifier(subsample=0.8),
+            param_grid=param_grid,
+            scoring='roc_auc',
+            cv=3,
+            verbose=1,
+            n_jobs=-1)
+        gridsearch.fit(X_train, y_train)
+        model = gridsearch.best_estimator_
+
+        dump(gridsearch, 'gbm_gridsearch.joblib')
+        dump(gridsearch, 'gbm_model.joblib')
+        t1 = time.time()
+        print('Running time:', t1 - t0)
+    elif model == 'rf':
+
+        param_grid = {
+            'n_estimators': [x for x in range(100, 1100, 200)],
+            'max_depth': [10, 20, 80]
+        }
+
+        gridsearch = GridSearchCV(
+            estimator=RandomForestClassifier(),
+            param_grid=param_grid,
+            scoring='roc_auc',
+            cv=3,
+            verbose=1,
+            n_jobs=-1)
+        gridsearch.fit(X_train, y_train)
+
+        model = gridsearch.best_estimator_
+        dump(gridsearch, 'rf_gridsearch.joblib')
+        dump(gridsearch, 'rf_model.joblib')
+
     else:
         train_test_base(X_train, X_test, y_train, y_test, task, model, inputs, seed)
