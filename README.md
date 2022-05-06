@@ -65,4 +65,4 @@ python baselines5.py --model gbm --inputs 7
 | Baseline (GB) - New Model | Experiment | 0.833 | N/A |
 | Fusion-CNN | Replication | 0.868 | 0.871 |
 
-The above AUCRUC values were obtained by fitting the models with all of the training data, (Model Inputs = U + T + S, if comparing to the original report).
+The above AUCRUC values were obtained by fitting the models with all of the training data (Model Inputs = U + T + S, if comparing to the original report).
