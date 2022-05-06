@@ -54,3 +54,15 @@ python baselines5.py --model rf --inputs 7
 ```sh
 python baselines5.py --model gbm --inputs 7
 ```
+
+# Replication Study Results Summary
+
+| Model        | Purpose           | Mean AUCROC (replication) |  Mean AUCROC (original paper)
+| ------------- |:-------------:| -----:|------:|
+| Baseline (LR)      | Replication | 0.864 | 0.862 |
+| Baseline (RF)      | Replication | 0.724 | 0.735 |
+| Baseline (RF) - New Params | Experiment | 0.862 | N/A |
+| Baseline (GB) - New Model | Experiment | 0.833 | N/A |
+| Fusion-CNN | Replication | 0.868 | 0.871 |
+
+The above AUCRUC values were obtained by fitting the models with all of the training data, (Model Inputs = U + T + S, if comparing to the original report).
